@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi: Chinh Phục Hệ Thức Lượng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Thư viện MathJax để hiển thị công thức Toán -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #667eea, #764ba2, #2b6cb0, #2c7a7b);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2), 0 0 20px rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .option-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 0 #cbd5e0;
+            transform: translateY(0);
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #a3bffa;
+        }
+
+        .option-btn:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 #cbd5e0;
+        }
+
+        .option-btn.correct {
+            background-color: #c6f6d5 !important;
+            border-color: #38a169 !important;
+            box-shadow: 0 4px 0 #2f855a !important;
+            color: #22543d;
+            animation: pulseCorrect 0.5s ease;
+        }
+
+        .option-btn.wrong {
+            background-color: #fed7d7 !important;
+            border-color: #e53e3e !important;
+            box-shadow: 0 4px 0 #c53030 !important;
+            color: #742a2a;
+            animation: shakeWrong 0.4s ease;
+        }
+
+        @keyframes pulseCorrect {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shakeWrong {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        #timer-bar {
+            transition: width 1s linear;
+        }
+
+        /* Ẩn các màn hình mặc định */
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Chỉnh lại font size cho MathJax bên trong nút bấm để dễ nhìn hơn */
+        .option-btn .MathJax {
+            font-size: 1.1em !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="glass-panel w-full max-w-3xl rounded-3xl overflow-hidden relative">
+        
+        <!-- MÀN HÌNH BẮT ĐẦU -->
+        <div id="start-screen" class="screen active p-10 text-center">
+            <div class="mb-8">
+                <span class="text-6xl">📐</span>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-4 tracking-tight">Chinh Phục<br><span class="text-indigo-600">Hệ Thức Lượng</span></h1>
+            <p class="text-gray-600 mb-8 text-lg">Ôn tập các công thức Định lí côsin, Định lí sin và Diện tích tam giác.<br>Gồm 20 câu hỏi - Thang điểm 10.</p>
+            <button onclick="startGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition-transform transform hover:scale-105 w-full sm:w-auto">
+                BẮT ĐẦU CHƠI
+            </button>
+        </div>
+
+        <!-- MÀN HÌNH CHƠI GAME -->
+        <div id="game-screen" class="screen flex flex-col h-[650px]">
+            <!-- Header -->
+            <div class="bg-white/80 backdrop-blur-md px-6 py-4 border-b flex justify-between items-center rounded-t-3xl">
+                <div class="flex items-center gap-2 font-bold text-gray-700 bg-indigo-100/80 px-4 py-2 rounded-2xl shadow-sm border border-indigo-200">
+                    🎯 Câu: <span id="current-q-num" class="text-indigo-700 text-lg">1/20</span>
+                </div>
+                <div class="flex items-center gap-2 font-bold text-yellow-800 bg-yellow-100/80 px-4 py-2 rounded-2xl shadow-sm border border-yellow-200">
+                    ⭐ Điểm: <span id="current-score" class="text-lg">0</span>
+                </div>
+            </div>
+            
+            <!-- Timer -->
+            <div class="w-full bg-gray-200 h-3 shadow-inner">
+                <div id="timer-bar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 w-full rounded-r-full shadow-[0_0_10px_rgba(79,70,229,0.5)]"></div>
+            </div>
+
+            <!-- Question Area -->
+            <div class="p-6 flex-1 flex flex-col">
+                <h2 id="question-text" class="text-xl sm:text-2xl font-bold text-gray-800 mb-8 text-center min-h-[80px] leading-relaxed">
+                    Đang tải câu hỏi...
+                </h2>
+                
+                <!-- Options Grid -->
+                <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-5 flex-1">
+                    <!-- Nút bấm sẽ được tạo bằng JS -->
+                </div>
+            </div>
+
+            <!-- Footer (Next Button) -->
+            <div class="p-6 bg-gray-50 border-t flex justify-center hidden" id="footer-actions">
+                <button onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-12 rounded-full text-lg shadow-md transition">
+                    Câu Tiếp Theo ➔
+                </button>
+            </div>
+        </div>
+
+        <!-- MÀN HÌNH KẾT QUẢ -->
+        <div id="result-screen" class="screen p-10 text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Hoàn Thành Bài Thi!</h2>
+            <p id="result-message" class="text-gray-500 mb-8">Tuyệt vời, hãy xem kết quả của bạn nhé.</p>
+            
+            <div class="bg-indigo-50 rounded-2xl p-8 mb-8 inline-block shadow-inner">
+                <div class="text-sm text-indigo-800 font-bold uppercase tracking-wider mb-2">Tổng Điểm</div>
+                <div class="text-6xl font-black text-indigo-600" id="final-score">10<span class="text-2xl text-gray-400">/10</span></div>
+                <div class="mt-4 text-gray-700 font-medium">
+                    Số câu đúng: <span id="correct-count" class="text-green-600 font-bold">20</span>/20
+                </div>
+            </div>
+
+            <div>
+                <button onclick="location.reload()" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-8 rounded-full text-lg shadow-md transition mx-2">
+                    🔄 Chơi Lại
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dữ liệu 20 câu hỏi với đáp án đúng và 3 đáp án gây nhiễu
+        const rawQuestions = [
+            {
+                question: "Trong tam giác $ABC$, công thức nào sau đây đúng theo định lí côsin?",
+                correct: "$a^2 = b^2 + c^2 - 2bc \\cos A$",
+                wrongs: ["$a^2 = b^2 + c^2 + 2bc \\cos A$", "$a^2 = b^2 + c^2 - bc \\cos A$", "$a^2 = b^2 + c^2 - 2bc \\sin A$"]
+            },
+            {
+                question: "Cũng theo định lí côsin, khẳng định nào sau đây là đúng đối với cạnh $b$?",
+                correct: "$b^2 = a^2 + c^2 - 2ac \\cos B$",
+                wrongs: ["$b^2 = a^2 + c^2 - 2ac \\sin B$", "$b^2 = a^2 + c^2 + 2ac \\cos B$", "$b^2 = a^2 + c^2 - ac \\cos B$"]
+            },
+            {
+                question: "Hệ quả của định lí côsin dùng để tính $\\cos A$ là biểu thức nào?",
+                correct: "$\\cos A = \\frac{b^2 + c^2 - a^2}{2bc}$",
+                wrongs: ["$\\cos A = \\frac{b^2 + c^2 + a^2}{2bc}$", "$\\cos A = \\frac{a^2 + c^2 - b^2}{2bc}$", "$\\cos A = \\frac{b^2 + c^2 - a^2}{bc}$"]
+            },
+            {
+                question: "Tương tự, biểu thức nào đúng khi tính $\\cos C$ từ hệ quả định lí côsin?",
+                correct: "$\\cos C = \\frac{a^2 + b^2 - c^2}{2ab}$",
+                wrongs: ["$\\cos C = \\frac{c^2 - a^2 - b^2}{2ab}$", "$\\cos C = \\frac{a^2 + b^2 + c^2}{2ab}$", "$\\cos C = \\frac{a^2 + b^2 - c^2}{ab}$"]
+            },
+            {
+                question: "Với $R$ là bán kính ngoại tiếp, khẳng định nào đúng theo định lí sin?",
+                correct: "$\\frac{a}{\\sin A} = 2R$",
+                wrongs: ["$\\frac{a}{\\sin A} = R$", "$\\frac{a}{\\cos A} = 2R$", "$\\frac{a}{\\sin A} = \\frac{R}{2}$"]
+            },
+            {
+                question: "Từ định lí sin, $\\sin B$ được tính bằng biểu thức nào sau đây?",
+                correct: "$\\sin B = \\frac{b}{2R}$",
+                wrongs: ["$\\sin B = \\frac{2R}{b}$", "$\\sin B = \\frac{b}{R}$", "$\\sin B = 2Rb$"]
+            },
+            {
+                question: "Cũng từ định lí sin, độ dài cạnh $c$ được biểu diễn bằng:",
+                correct: "$c = 2R \\sin C$",
+                wrongs: ["$c = R \\sin C$", "$c = 2R \\cos C$", "$c = \\frac{\\sin C}{2R}$"]
+            },
+            {
+                question: "Công thức tính diện tích $S$ theo hai cạnh và góc xen giữa là:",
+                correct: "$S = \\frac{1}{2}bc \\sin A$",
+                wrongs: ["$S = \\frac{1}{2}bc \\cos A$", "$S = bc \\sin A$", "$S = \\frac{1}{2}ac \\sin A$"]
+            },
+            {
+                question: "Mệnh đề tính diện tích $S$ nào sau đây là **SAI**?",
+                correct: "$S = \\frac{1}{2}ab \\cos C$",
+                wrongs: ["$S = \\frac{1}{2}ab \\sin C$", "$S = \\frac{1}{2}ac \\sin B$", "$S = \\frac{1}{2}bc \\sin A$"]
+            },
+            {
+                question: "Biểu thức tính nửa chu vi $p$ của tam giác là:",
+                correct: "$p = \\frac{a+b+c}{2}$",
+                wrongs: ["$p = a+b+c$", "$p = \\frac{a+b+c}{3}$", "$p = a^2+b^2+c^2$"]
+            },
+            {
+                question: "Công thức Heron tính diện tích $S$ theo nửa chu vi $p$ là:",
+                correct: "$S = \\sqrt{p(p-a)(p-b)(p-c)}$",
+                wrongs: ["$S = \\sqrt{(p-a)(p-b)(p-c)}$", "$S = p(p-a)(p-b)(p-c)$", "$S = \\sqrt{p(p+a)(p+b)(p+c)}$"]
+            },
+            {
+                question: "Công thức tính diện tích $S$ theo ba cạnh $a, b, c$ và bán kính ngoại tiếp $R$ là:",
+                correct: "$S = \\frac{abc}{4R}$",
+                wrongs: ["$S = \\frac{abc}{R}$", "$S = \\frac{abc}{2R}$", "$S = \\frac{4R}{abc}$"]
+            },
+            {
+                question: "Từ công thức $S = \\frac{abc}{4R}$, bán kính đường tròn ngoại tiếp $R$ được tính bằng:",
+                correct: "$R = \\frac{abc}{4S}$",
+                wrongs: ["$R = \\frac{4S}{abc}$", "$R = \\frac{abc}{S}$", "$R = \\frac{abc}{2S}$"]
+            },
+            {
+                question: "Với $r$ là bán kính đường tròn nội tiếp, công thức tính diện tích $S$ là:",
+                correct: "$S = pr$",
+                wrongs: ["$S = \\frac{p}{r}$", "$S = 2pr$", "$S = p^2r$"]
+            },
+            {
+                question: "Từ công thức $S = pr$, bán kính đường tròn nội tiếp $r$ được tính bằng:",
+                correct: "$r = \\frac{S}{p}$",
+                wrongs: ["$r = \\frac{p}{S}$", "$r = Sp$", "$r = \\frac{2S}{p}$"]
+            },
+            {
+                question: "Mệnh đề nào sau đây biểu diễn đúng hệ thức của định lí sin trong tam giác $ABC$?",
+                correct: "$\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C}$",
+                wrongs: ["$\\frac{a}{\\sin B} = \\frac{b}{\\sin C} = \\frac{c}{\\sin A}$", "$\\frac{a}{\\cos A} = \\frac{b}{\\cos B} = \\frac{c}{\\cos C}$", "$a \\sin A = b \\sin B = c \\sin C$"]
+            },
+            {
+                question: "Dựa vào độ dài ba cạnh $a, b, c$ và bán kính nội tiếp $r$, diện tích $S$ được tính bằng công thức nào?",
+                correct: "$S = \\frac{(a+b+c)r}{2}$",
+                wrongs: ["$S = (a+b+c)r$", "$S = \\frac{r}{2(a+b+c)}$", "$S = \\frac{(a+b+c)}{2r}$"]
+            },
+            {
+                question: "Công thức nào sau đây thể hiện đúng định lí côsin để tính bình phương cạnh $c$?",
+                correct: "$c^2 = a^2 + b^2 - 2ab \\cos C$",
+                wrongs: ["$c^2 = a^2 + b^2 + 2ab \\cos C$", "$c^2 = a^2 + b^2 - ab \\cos C$", "$c^2 = a^2 + b^2 - 2ab \\sin C$"]
+            },
+            {
+                question: "Trong các đẳng thức tính diện tích tam giác $ABC$ dưới đây, đẳng thức nào **SAI**?",
+                correct: "$S = \\frac{1}{2}ab \\cos C$",
+                wrongs: ["$S = \\frac{1}{2}bc \\sin A$", "$S = \\frac{1}{2}ca \\sin B$", "$S = \\frac{1}{2}ab \\sin C$"]
+            },
+            {
+                question: "Biểu thức tính diện tích $S$ theo công thức Heron là gì?",
+                correct: "$S = \\sqrt{p(p-a)(p-b)(p-c)}$",
+                wrongs: ["$S = \\sqrt{(p-a)(p-b)(p-c)}$", "$S = p(p-a)(p-b)(p-c)$", "$S = \\sqrt{p(p+a)(p+b)(p+c)}$"]
+            }
+        ];
+
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let scoreCount = 0;
+        let timerInterval;
+        const TIME_LIMIT = 20; // 20 giây mỗi câu
+        let timeLeft = TIME_LIMIT;
+        let isAnswered = false;
+
+        // Trộn mảng (Shuffle array)
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // Chuẩn bị dữ liệu trò chơi
+        function prepareData() {
+            // Không trộn thứ tự câu hỏi để giữ nguyên flow ôn tập (hoặc có thể trộn tuỳ ý)
+            questions = rawQuestions.map(q => {
+                let options = [
+                    { text: q.correct, isCorrect: true },
+                    { text: q.wrongs[0], isCorrect: false },
+                    { text: q.wrongs[1], isCorrect: false },
+                    { text: q.wrongs[2], isCorrect: false }
+                ];
+                return {
+                    question: q.question,
+                    options: shuffle(options)
+                };
+            });
+        }
+
+        // Chuyển đổi màn hình
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function startGame() {
+            prepareData();
+            currentQuestionIndex = 0;
+            scoreCount = 0;
+            updateScoreDisplay();
+            showScreen('game-screen');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isAnswered = false;
+            document.getElementById('footer-actions').classList.add('hidden');
+            
+            const q = questions[currentQuestionIndex];
+            document.getElementById('current-q-num').innerText = (currentQuestionIndex + 1) + "/" + questions.length;
+            
+            const qText = document.getElementById('question-text');
+            qText.innerHTML = q.question;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            const letters = ['A', 'B', 'C', 'D'];
+            
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn flex items-center p-4 rounded-2xl text-left bg-white w-full';
+                btn.onclick = () => selectAnswer(btn, opt.isCorrect);
+                
+                // Gán thuộc tính data-correct để tý nữa tô màu nếu người dùng chọn sai/hết giờ
+                if (opt.isCorrect) btn.dataset.correct = "true";
+
+                btn.innerHTML = `
+                    <span class="w-12 h-12 flex items-center justify-center bg-indigo-50 text-indigo-700 font-black rounded-xl mr-4 shrink-0 text-lg border border-indigo-100 shadow-sm">${letters[index]}</span>
+                    <span class="flex-1 text-gray-800 font-medium text-lg leading-relaxed">${opt.text}</span>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            // Yêu cầu MathJax render lại các công thức Toán học
+            if (window.MathJax) {
+                MathJax.typesetPromise([qText, optionsContainer]).catch(function (err) {
+                    console.error('MathJax error:', err.message);
+                });
+            }
+
+            startTimer();
+        }
+
+        function startTimer() {
+            timeLeft = TIME_LIMIT;
+            const bar = document.getElementById('timer-bar');
+            bar.style.width = '100%';
+            bar.style.transition = 'none'; // reset transition
+            bar.className = 'bg-gradient-to-r from-blue-500 to-indigo-600 h-3 w-full rounded-r-full shadow-[0_0_10px_rgba(79,70,229,0.5)]';
+            
+            // Allow reflow
+            void bar.offsetWidth; 
+            
+            bar.style.transition = `width ${TIME_LIMIT}s linear`;
+            bar.style.width = '0%';
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 5) {
+                    bar.classList.remove('from-blue-500', 'to-indigo-600', 'shadow-[0_0_10px_rgba(79,70,229,0.5)]');
+                    bar.classList.add('from-red-500', 'to-red-600', 'shadow-[0_0_10px_rgba(220,38,38,0.8)]');
+                }
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function selectAnswer(btn, isCorrect) {
+            if (isAnswered) return;
+            isAnswered = true;
+            clearInterval(timerInterval);
+
+            // Tạm dừng thanh bar đang chạy
+            const bar = document.getElementById('timer-bar');
+            const currentWidth = window.getComputedStyle(bar).width;
+            bar.style.transition = 'none';
+            bar.style.width = currentWidth;
+
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (isCorrect) {
+                btn.classList.add('correct');
+                scoreCount++;
+                updateScoreDisplay();
+            } else {
+                btn.classList.add('wrong');
+                // Bôi xanh đáp án đúng
+                allBtns.forEach(b => {
+                    if (b.dataset.correct === "true") b.classList.add('correct');
+                });
+            }
+
+            document.getElementById('footer-actions').classList.remove('hidden');
+        }
+
+        function handleTimeOut() {
+            if (isAnswered) return;
+            isAnswered = true;
+            
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => {
+                b.disabled = true;
+                if (b.dataset.correct === "true") b.classList.add('correct');
+            });
+
+            document.getElementById('footer-actions').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                endGame();
+            }
+        }
+
+        function updateScoreDisplay() {
+            // Hiển thị điểm cộng dồn tạm thời (số câu đúng)
+            document.getElementById('current-score').innerText = (scoreCount * 0.5).toFixed(1);
+        }
+
+        function endGame() {
+            showScreen('result-screen');
+            const finalScore = (scoreCount * 0.5); // Tính theo thang điểm 10 (20 câu * 0.5)
+            
+            document.getElementById('correct-count').innerText = scoreCount;
+            document.getElementById('final-score').innerHTML = `${finalScore}<span class="text-2xl text-gray-400">/10</span>`;
+            
+            let message = "";
+            if (finalScore === 10) message = "Xuất sắc! Bạn đã nắm vững tuyệt đối hệ thức lượng!";
+            else if (finalScore >= 8) message = "Rất tốt! Kỹ năng áp dụng công thức của bạn rất vững.";
+            else if (finalScore >= 5) message = "Làm tốt lắm, nhưng bạn nên ôn lại thêm vài công thức nhé.";
+            else message = "Hãy xem lại lý thuyết trong sách giáo khoa để cải thiện nhé!";
+            
+            document.getElementById('result-message').innerText = message;
+        }
+
+    </script>
+</body>
+</html>
